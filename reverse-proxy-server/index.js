@@ -13,6 +13,12 @@ app.use((req,res)=>{
     proxy.web(req,res, {target: resolveTo, changeOrigin: true})
 })
 
+proxy.on("proxyReq", (proxyReq,req,res)=>{
+    const url = req.url
+    if(url ==='/'){
+        proxyReq.path += "index.html"
+    }
+})
 
-app.listen(PORT , ()=>{console.log(`Proxy server running on ${process.env.PORT}`)})
+app.listen(PORT , ()=>{console.log(`Proxy server running on ${PORT}`)})
 
