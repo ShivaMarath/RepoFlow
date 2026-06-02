@@ -7,7 +7,7 @@ RUN apt-get install git -y
 WORKDIR /home/app
 COPY main.sh main.sh
 COPY script.js script.js
-RUN npm install @aws-sdk/client-s3 mime-types dotenv
+RUN npm install @aws-sdk/client-s3 mime-types dotenv ioredis
 RUN dos2unix main.sh
 RUN chmod +x main.sh
 ENTRYPOINT ["/bin/bash", "/home/app/main.sh"]
