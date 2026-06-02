@@ -1,7 +1,7 @@
 const express = require("express")
 const { generateSlug } = require("random-word-slugs")
 const { ECSClient, RunTaskCommand } = require("@aws-sdk/client-ecs")
-const {} = require ("socket.io")
+const {Server} = require ("socket.io")
 const Redis = require("ioredis")
 const dotenv = require("dotenv")
 dotenv.config()
@@ -10,9 +10,9 @@ const PORT = process.env.PORT || 9000
 const app = express()
 app.use(express.json())
 
-const subscriber = new Redis('')
+const subscriber = new Redis(process.env.REDIS_URL)
 
-const io = new Server({ cors: '*' })
+const io = new Server({ cors: { origin: '*' } })
 
 io.on('connection', socket => {
     socket.on('subscribe', channel => {
@@ -76,7 +76,7 @@ app.post('/project', async (req, res) => {
 
 async function initRedisSubscribe() {
     console.log('Subscribed to logs....')
-    subscriber.psubscribe('logs:*')
+    await subscriber.psubscribe('logs:*')
     subscriber.on('pmessage', (pattern, channel, message) => {
         io.to(channel).emit('message', message)
     })
