@@ -106,6 +106,9 @@ async function initRedisSubscribe() {
         io.to(channel).emit('message', message)
     })
 }
+initRedisSubscribe().catch(error => {
+    console.error("There was an error in subscribing to redis", error)
+    process.exit(1)
+})
 
-initRedisSubscribe()
 app.listen(PORT, () => { console.log(`API server running on ${PORT}`) })
