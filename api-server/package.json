@@ -16,7 +16,8 @@
     "express": "^5.2.1",
     "ioredis": "^5.11.0",
     "random-word-slugs": "^0.1.7",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
