@@ -44,23 +44,46 @@ app.post('/project', async(req,res)=>{
     if (safeParseResult.error) return res.status(400).json({ error: safeParseResult.error })
 
     const { name, gitURL } = safeParseResult.data
-
-    const project = await prisma.project.create({
-        data: {
-            name,
-            gitURL,
-            subDomain: generateSlug()
-        }
-    })
-    return res.json({ status: 'success', data: { project } })
+    try {
+        const project = await prisma.project.create({
+            data: {
+                name,
+                gitURL,
+                subDomain: generateSlug()
+            }
+        })
+        return res.json({ status: 'success', data: { project } })
+    } catch (error) {
+        console.error("Project creation failed.", error)
+        return res.status(500).json({ status: 'error', message: 'Project creation failed' })
+    }
+    
+    
 
 })
 
 app.post('/deploy', async (req, res) => {
-    const { gitURL, slug } = req.body
-    const projectSlug = slug ? slug : generateSlug()
+    const { projectId } = req.body
+
+    const project = await prisma.project.findUnique({ where: { id: projectId } })
+
+    if (!project) return res.status(404).json({ error: 'Project not found' })
+
+    // to check if there is no running deployment
+    const existingDeployment = await prisma.deployment.findFirst({
+    where: { projectId, status: { in: ['QUEUED', 'IN_PROGRESS'] } }
+    })
+    if (existingDeployment) {
+        return res.status(409).json({ error: 'A deployment is already running for this project' })
+    }
 
     try {
+        const deployment = await prisma.deployment.create({
+            data: {
+                project: { connect: { id: projectId } },
+                status: 'QUEUED',
+                    }
+            })
         const command = new RunTaskCommand({
             cluster: config.CLUSTER,
             taskDefinition: config.TASK,
@@ -78,8 +101,9 @@ app.post('/deploy', async (req, res) => {
                     {
                         name: 'builder-image',
                         environment: [
-                            { name: 'GIT_REPOSITORY__URL', value: gitURL },
-                            { name: 'PROJECT_ID', value: projectSlug }
+                            { name: 'GIT_REPOSITORY__URL', value: project.gitURL },
+                            { name: 'PROJECT_ID', value: projectId },
+                            { name: 'DEPLOYMENT_ID', value: deployment.id },
                         ]
                     }
                 ]
@@ -88,10 +112,8 @@ app.post('/deploy', async (req, res) => {
 
         await ecsClient.send(command)
 
-        return res.json({
-            status: 'queued',
-            data: { projectSlug, url: `http://${projectSlug}.localhost:8000` }
-        })
+        return res.json({ status: 'queued', data: { deploymentId: deployment.id } })
+
     } catch (error) {
         console.error("ECS RunTask error:", error)
         return res.status(500).json({ status: 'error', message: error.message })
