@@ -202,6 +202,3 @@ model Deployment {
 
 ---
 
-## License
-
-MIT
