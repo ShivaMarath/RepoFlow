@@ -8,23 +8,31 @@ const dotenv = require("dotenv")
 dotenv.config()
 
 const publisher = new Redis(process.env.REDIS_URL)
+publisher.on('error', (err) => console.error('[Redis] connection error:', err.message))
 
 const s3client = new S3Client({
     region: 'ap-south-1',
-    credentials: {
+    credentials: process.env.IAM_ACCESS_KEY_ID && process.env.IAM_SECRET_ACCESS_KEY ? {
         accessKeyId: process.env.IAM_ACCESS_KEY_ID,
         secretAccessKey: process.env.IAM_SECRET_ACCESS_KEY
-    }
+    } : undefined
 })
 
 const PROJECT_ID = process.env.PROJECT_ID
+const DEPLOYMENT_ID = process.env.DEPLOYMENT_ID
+
 async function publishLog(log) {
-    await publisher.publish(`logs:${PROJECT_ID}`, JSON.stringify({ log }))
+    await publisher.publish(`logs:${DEPLOYMENT_ID}`, JSON.stringify({ log }))
+}
+
+async function publishStatus(status) {
+    await publisher.publish(`status:${DEPLOYMENT_ID}`, JSON.stringify({ status }))
 }
 
 async function init() {
     console.log("executing the script")
-     publishLog('Build Started...')
+    publishLog('Build Started...')
+    await publishStatus('IN_PROGRESS')
     const outDirPath = path.join(__dirname, 'output')
     const p = exec(`cd ${outDirPath} && rm -rf node_modules package-lock.json && npm install && npm run build`)
 
@@ -44,6 +52,7 @@ async function init() {
 
         if (code !== 0) {
             console.error(`Build process exited with code ${code}`)
+            await publishStatus('FAIL')
             process.exit(1)
         }
 
@@ -51,6 +60,7 @@ async function init() {
 
         if (!fs.existsSync(distFolderPath)) {
             console.error("Build failed — dist folder not found")
+            await publishStatus('FAIL')
             process.exit(1)
         }
 
@@ -81,6 +91,7 @@ async function init() {
         }
         publishLog(`Done`)
         console.log("Done")
+        await publishStatus('READY')
         publisher.quit()
     })
 }
