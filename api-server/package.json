@@ -12,11 +12,18 @@
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-ecs": "^3.1057.0",
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ioredis": "^5.11.0",
+    "jsonwebtoken": "^9.0.3",
     "random-word-slugs": "^0.1.7",
     "socket.io": "^4.8.3",
+    "ws": "^8.21.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
